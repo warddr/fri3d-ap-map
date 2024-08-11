@@ -113,8 +113,17 @@ async def location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
     context.user_data["lat"] = user_location.latitude
     context.user_data["lon"] = user_location.longitude
+
+    # sqlite3 request list of switches
+    cur.execute("SELECT locatie FROM SWITCH")
+    switch_list = cur.fetchall()
+    kb = [[KeyboardButton(switch[0])] for switch in switch_list]
+    kb.append([KeyboardButton('/cancel')])
+
+    kb_markup = ReplyKeyboardMarkup(kb, resize_keyboard=True)
+
     await update.message.reply_text(
-        "Maybe I can visit it sometime! At last, send me the port on the switch:", reply_markup=ReplyKeyboardRemove(),
+        "Click the name of the switch the AP is connected to:", reply_markup=kb_markup,
     )
 
     return SWITCHPORT
@@ -124,26 +133,46 @@ async def skip_location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     """Skips the location and asks for info about the user."""
     user = update.message.from_user
     logger.info("User %s did not send a location.", user.first_name)
+
+    cur.execute("SELECT locatie FROM SWITCH")
+    switch_list = cur.fetchall()
+    kb = [[KeyboardButton(switch[0])] for switch in switch_list]
+    kb.append([KeyboardButton('/cancel')])
+
+    kb_markup = ReplyKeyboardMarkup(kb, resize_keyboard=True)
+
     await update.message.reply_text(
-        "You seem a bit paranoid! At last, send me the port on the switch:"
+        "You seem a bit paranoid! Click the switch we are connected to:", reply_markup=kb_markup,
     )
 
     return SWITCHPORT
+
+#CREATE TABLE IF NOT EXISTS "switch"(
+#  "id" TEXT,
+#  "locatie" TEXT,
+#  "naam" TEXT,
+#  "lat" TEXT,
+#  "lon" TEXT
+#);
+
 
 
 async def switchport(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Stores the info about the user and ends the conversation."""
     user = update.message.from_user
     logger.info("Bio of %s: %s", user.first_name, update.message.text)
-    await update.message.reply_text("Thank you! Use /start again to add more AP's.")
-    context.user_data["port"] = update.message.text
+    await update.message.reply_text("Thank you! Use /start again to add more AP's.", reply_markup=ReplyKeyboardRemove())
+    context.user_data["switch"] = update.message.text
+    # sqlite3 insert into AP, translate switch to id
+    cur.execute("SELECT id FROM SWITCH WHERE locatie = ?", (context.user_data["switch"],))
+    context.user_data["switchid"] = cur.fetchone()[0]
     data = [
-    (context.user_data["ap_number"], context.user_data["lat"], context.user_data["lon"], context.user_data["port"]),
+    (context.user_data["ap_number"], context.user_data["lat"], context.user_data["lon"], context.user_data["switchid"]),
     ]
-    cur.executemany("INSERT INTO AP(number, lat, lon, switchport) VALUES(?, ?, ?, ?)", data)
+    cur.executemany("INSERT INTO AP(number, lat, lon, switch) VALUES(?, ?, ?, ?)", data)
     con.commit()
 
-    logger.info("finished: AP %s at location %s, %s in switch port %s", context.user_data["ap_number"], context.user_data["lat"], context.user_data["lon"], context.user_data["port"] )
+    logger.info("finished: AP %s at location %s, %s in switch %s", context.user_data["ap_number"], context.user_data["lat"], context.user_data["lon"], context.user_data["switch"] )
     return ConversationHandler.END
 
 
@@ -152,7 +181,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user = update.message.from_user
     logger.info("User %s canceled the conversation.", user.first_name)
     await update.message.reply_text(
-        "Bye! I hope we can talk again some day.", reply_markup=ReplyKeyboardRemove()
+        "Not saved, use /start to start again", reply_markup=ReplyKeyboardRemove()
     )
 
     return ConversationHandler.END
