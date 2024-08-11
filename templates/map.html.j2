@@ -9,12 +9,34 @@
   <body>
     <div id="mapid" style="width: 800px; height: 700px;"></div>
     <script>
-      var mymap = L.map('mapid').setView([50.75, 4.5], 8);
+      var mymap = L.map('mapid').setView([50.79964, 4.66301], 17);
 
       L.tileLayer( 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '<a href="https://www.openstreetmap.org/fixthemap">Fix a problem with the map!</a> | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
           subdomains: ['a','b','c']
       }).addTo( mymap );
+
+
+      $.getJSON('{{lines}}', function (geojson) {
+        L.geoJson(geojson, {
+          style: function(feature) {
+            if (feature.geometry.type == "LineString") {
+              rssi = 1;
+              if (rssi > -100) {return {color: "#FF0000", "opacity": 0.4, "weight": "2"}};
+              if (rssi > -105) {return {color: "#FFA500", "opacity": 0.6, "weight": "2"}};
+              if (rssi > -110) {return {color: "#FFFF00", "opacity": 0.6, "weight": "2"}};
+              if (rssi > -115) {return {color: "#00FF00", "opacity": 0.4, "weight": "2"}};
+              if (rssi > -120) {return {color: "#00FFFF", "opacity": 0.4, "weight": "2"}};
+              return {color: "#0000FF", "opacity": 0.4, "weight": "2"};
+            };
+          },
+
+          onEachFeature: function (feature, layer) {
+            layer.bindPopup("hello");
+            layer.openPopup();
+          }
+        }).addTo( mymap );
+      });
 
       var redIcon = new L.Icon({
         iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
@@ -30,7 +52,7 @@
         popupAnchor: [1, -17],
       });
 
-      $.getJSON('{{hotspots}}', function (geojson) {
+      $.getJSON('{{APs}}', function (geojson) {
         L.geoJson(geojson, {
           pointToLayer: function(feature, latlng) {
             return L.marker(latlng, {
@@ -41,6 +63,17 @@
             layer.bindPopup("<b>AP:</b> " +feature.properties.name +"<br />"+
                             "<a href='apdetail?number=" + feature.properties.name+"'>show AP info</a>");
           }
+        }).addTo( mymap );
+      });
+
+
+      $.getJSON('{{switches}}', function (geojson) {
+        L.geoJson(geojson, {
+          pointToLayer: function(feature, latlng) {
+            return L.marker(latlng, {
+              icon: blueIcon
+            });
+          },
         }).addTo( mymap );
       });
     </script>

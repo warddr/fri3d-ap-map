@@ -27,8 +27,18 @@ def close_connection(exception):
 def hello():
   return "Hello World!"
 
+@app.route("/api/geojson/switch")
+def api_geojson_switch():
+  features = []
+  cur = get_db().cursor()
+  cur.execute("SELECT id, locatie, naam, lon, lat FROM switch ")
+  for points in cur.fetchall():
+    mypoint = Point((float(points[3]), float(points[4])))
+    features.append(Feature(geometry=mypoint, properties={"name": points[2], "id": points[0], "location": points[1]}))
+  return FeatureCollection(features)
+
 @app.route("/api/geojson/AP")
-def api_geojson_hotspots():
+def api_geojson_AP():
   number = request.args.get('number', default = "%", type = str)
   cur = get_db().cursor()
   features = []
@@ -38,10 +48,20 @@ def api_geojson_hotspots():
     features.append(Feature(geometry=mypoint, properties={"name": points[1]}))
   return FeatureCollection(features)
 
+@app.route("/api/geojson/lines")
+def api_geojson_lines():
+  features = []
+  cur = get_db().cursor()
+  cur.execute("SELECT AP.lon, AP.lat, switch.lon, switch.lat FROM AP INNER JOIN switch ON AP.switch = switch.id")
+  for points in cur.fetchall():
+      myline = LineString([(float(points[0]), float(points[1])),(float(points[2]), float(points[3]))])
+      features.append(Feature(geometry=myline, properties={}))
+  return FeatureCollection(features)
+
 
 @app.route("/map")
 def map():
-  return render_template('map.html.j2', hotspots="api/geojson/AP")
+  return render_template('map.html.j2', APs="api/geojson/AP", switches="api/geojson/switch", lines="api/geojson/lines")
 
 @app.route("/apdetail")
 def apdetail():
