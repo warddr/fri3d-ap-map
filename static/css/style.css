@@ -1,0 +1,54 @@
+html,
+body {
+  height: 100%;
+  padding: 0;
+  margin: 0;
+}
+.leaflet-container {
+  height: 400px;
+  width: 600px;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.leaflet-popup-content {
+  font-size: 1.5em;
+}
+
+#container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+#friedmap {
+  height: 100%;
+  width: 100vw;
+}
+
+#friedmapdetail {
+  height: 67%;
+  width: 100vw;
+  margin: 0;
+}
+
+#detailbox {
+  display: flex;
+  height: 33%;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  font-size: em;
+}
+
+#detailbox img {
+  height: 100%;
+  max-width: 50%;
+  object-fit: contain;
+  flex: 1;
+}
+
+#detailbox-info {
+  flex: 2;
+}
