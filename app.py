@@ -33,6 +33,34 @@ def get_ap_info(number):
         return None
 
 
+def get_switch_info(id):
+    def get_ports_for_switch(switch_id: int):
+        cur = get_db().cursor()
+        cur.execute("SELECT id, number FROM AP WHERE switch = ?", (switch_id,))
+        return cur.fetchall()
+
+    cur = get_db().cursor()
+    cur.execute("SELECT id, locatie, naam, lon, lat FROM switch WHERE id = ?", (id,))
+    result = cur.fetchone()
+    if result is None:
+        return None
+
+    switch_info = {
+        "id": result[0],
+        "locatie": result[1],
+        "naam": result[2],
+        "lon": result[3],
+        "lat": result[4],
+        "ports": [],
+    }
+
+    ports = get_ports_for_switch(id)
+    for ap in ports:
+        switch_info["ports"].append({"id": ap[0], "number": ap[1]})
+
+    return switch_info
+
+
 @app.teardown_appcontext
 def close_connection(exception):
     db = getattr(g, "_database", None)
@@ -47,9 +75,10 @@ def hello():
 
 @app.route("/api/geojson/switch")
 def api_geojson_switch():
-    features = []
+    id = request.args.get("number", default="%", type=str)
     cur = get_db().cursor()
-    cur.execute("SELECT id, locatie, naam, lon, lat FROM switch ")
+    features = []
+    cur.execute("SELECT id, locatie, naam, lon, lat FROM switch WHERE id LIKE ?", (id,))
     for points in cur.fetchall():
         mypoint = Point((float(points[3]), float(points[4])))
         features.append(
@@ -100,7 +129,14 @@ def map():
 def apdetail():
     number = request.args.get("number", type=str)
     apinfo = get_ap_info(number)
-    return render_template("apdetail.html.j2", apinfo=apinfo, hotspots="api/geojson/AP?number=" + number)
+    switchinfo = get_switch_info(apinfo["switch"])
+    return render_template(
+        "apdetail.html.j2",
+        apinfo=apinfo,
+        switchinfo=switchinfo,
+        switch_geo="api/geojson/switch?number=" + switchinfo["id"],
+        hotspots="api/geojson/AP?number=" + number,
+    )
 
 
 if __name__ == "__main__":

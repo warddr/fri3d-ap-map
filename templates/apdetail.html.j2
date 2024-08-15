@@ -63,6 +63,21 @@
             }
           }).addTo( mymap );
         });
+
+        fetch('{{switch_geo}}')
+        .then(response => response.json())
+        .then(geojson => {
+          L.geoJson(geojson, {
+            pointToLayer: function(feature, latlng) {
+              return L.marker(latlng, {
+                icon: blueIcon
+              });
+            },
+            onEachFeature: function (feature, layer) {
+              layer.bindPopup("<b>Switch:</b> " + feature.properties.name);
+            }
+          }).addTo( mymap );
+        });
       </script>
     </div>
   </body>
