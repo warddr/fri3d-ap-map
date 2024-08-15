@@ -3,7 +3,7 @@ import sqlite3
 from flask import Flask, g, render_template, request
 from geojson import Feature, FeatureCollection, LineString, Point
 
-app = Flask(__name__, template_folder="templates", static_url_path="/static")
+app = Flask(__name__, template_folder="templates", static_url_path="/", static_folder="static")
 
 DATABASE = "telegrambot.db"
 
@@ -13,6 +13,24 @@ def get_db():
     if db is None:
         db = g._database = sqlite3.connect(DATABASE)
     return db
+
+
+def get_ap_info(number):
+    cur = get_db().cursor()
+    cur.execute("SELECT id, number, lon, lat, switch, switchport FROM AP WHERE number = ?", (number,))
+    result = cur.fetchone()
+    if result is not None:
+        ap_info = {
+            "id": result[0],
+            "number": result[1],
+            "lon": result[2],
+            "lat": result[3],
+            "switch": result[4],
+            "switchport": result[5],
+        }
+        return ap_info
+    else:
+        return None
 
 
 @app.teardown_appcontext
@@ -48,10 +66,12 @@ def api_geojson_AP():
     number = request.args.get("number", default="%", type=str)
     cur = get_db().cursor()
     features = []
-    cur.execute("SELECT id, number, lon, lat FROM AP WHERE number LIKE ?", (number,))
+    cur.execute("SELECT id, number, lon, lat, switch, switchport FROM AP WHERE number LIKE ?", (number,))
     for points in cur.fetchall():
         mypoint = Point((float(points[2]), float(points[3])))
-        features.append(Feature(geometry=mypoint, properties={"name": points[1]}))
+        features.append(
+            Feature(geometry=mypoint, properties={"name": points[1], "switch": points[4], "switchport": points[5]})
+        )
     return FeatureCollection(features)
 
 
@@ -79,7 +99,8 @@ def map():
 @app.route("/apdetail")
 def apdetail():
     number = request.args.get("number", type=str)
-    return render_template("apdetail.html.j2", number=number, hotspots="api/geojson/AP?number=" + number)
+    apinfo = get_ap_info(number)
+    return render_template("apdetail.html.j2", apinfo=apinfo, hotspots="api/geojson/AP?number=" + number)
 
 
 if __name__ == "__main__":
