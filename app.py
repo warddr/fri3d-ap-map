@@ -1,11 +1,7 @@
-from flask import Flask, request, jsonify, render_template, g
-import geopy.distance
-from geojson import Feature, Point, FeatureCollection, LineString, MultiLineString
-import requests
-from requests.structures import CaseInsensitiveDict
-
 import sqlite3
 
+from flask import Flask, g, render_template, request
+from geojson import Feature, FeatureCollection, LineString, Point
 
 app = Flask(__name__, template_folder='templates', static_url_path='/static')
 
